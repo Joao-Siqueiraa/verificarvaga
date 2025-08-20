@@ -2,10 +2,13 @@ from playwright.sync_api import sync_playwright
 from urllib.parse import unquote, urlparse
 import re
 import time
+from plyer import notification
 
 BASE = "https://praticas.futebolinterativo.com"
 ESTADO_LINK_TEXT = "RJ"  
 PORTUGUESA_IMG = "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grohgpofzbof/b/arquivos-sistema/o/clubes%2Fportuguesarj.png"
+
+URL_ANALISE = "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grohgpofzbof/b/arquivos-sistema/o/cards-areas%2Fan%C3%A1lise.jpg"
 
 VAGAS_IMAGENS = [
     "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grohgpofzbof/b/arquivos-sistema/o/cards-areas%2Fcomunicacaoemkt.jpg",
@@ -25,7 +28,7 @@ def nome_area_por_img_src(src: str) -> str | None:
 
 def listar_vagas_portuguesa_rj():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=True, slow_mo=0)
         page = browser.new_page()
         page.set_default_timeout(20000)
 
@@ -68,11 +71,9 @@ def listar_vagas_portuguesa_rj():
                 })
 
         # 7) Verifica se a vaga "Análise" está presente
-        analise_presente = any(v["area"].lower() == "análise" and v["img_src"] for v in vagas)
+        analise_presente = any(v["img_src"] == URL_ANALISE for v in vagas)
 
         # 8) Voltar
-        page.go_back()
-        input("Pressione ENTER para fechar o navegador...")
         browser.close()
         return vagas, analise_presente
 
@@ -81,4 +82,13 @@ if __name__ == "__main__":
     print("=== Vagas encontradas (Portuguesa-RJ) ===")
     for v in vagas:
         print(f"- Área: {v['area']} | Imagem carregada: {'✅' if v['img_src'] else '❌'}")
-    print(f"\nVaga de Análise encontrada? {'✅' if analise else '❌'}")
+
+    if analise:
+        notification.notify(
+            title="Vaga de Análise encontrada!",
+            message="A vaga de Análise na Portuguesa-RJ está disponível! 🚀",
+            timeout=10
+        )
+        print("\n✅ Vaga de Análise encontrada!")
+    else:
+        print("\n❌ Vaga de Análise não encontrada.")
